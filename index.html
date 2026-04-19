@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SplitCard</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;color:#1a1a1a;min-height:100vh}
+    .app{max-width:880px;margin:0 auto;padding:1rem}
+    .pin-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
+    .pin-box{background:#fff;border-radius:16px;padding:2.5rem 2rem;width:100%;max-width:360px;box-shadow:0 2px 12px rgba(0,0,0,0.1);text-align:center}
+    .pin-title{font-size:24px;font-weight:700;margin-bottom:6px}
+    .pin-title span{color:#2563eb}
+    .pin-sub{font-size:13px;color:#888;margin-bottom:24px}
+    .pin-input{width:100%;font-size:20px;text-align:center;padding:12px;border:1.5px solid #e0e0e0;border-radius:10px;letter-spacing:6px;margin-bottom:14px}
+    .pin-input:focus{border-color:#2563eb;outline:none}
+    .pin-error{font-size:12px;color:#dc2626;margin-bottom:10px;min-height:18px}
+    .friend-screen{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:100vh;padding:1rem;background:#f5f5f5}
+    .nav{display:flex;gap:8px;margin-bottom:1.5rem;background:#fff;border-radius:12px;padding:12px 16px;align-items:center;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+    .nav-title{font-size:17px;font-weight:700;margin-right:auto}
+    .nav-title span{color:#2563eb}
+    .tab{padding:7px 16px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;background:transparent;color:#666}
+    .tab.active{background:#2563eb;color:#fff}
+    .tab:hover:not(.active){background:#f0f0f0}
+    .logout-btn{padding:6px 12px;border-radius:8px;border:1px solid #e0e0e0;background:#fff;font-size:12px;color:#888;cursor:pointer}
+    .view{display:none}
+    .view.active{display:block}
+    .metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.25rem}
+    .metric{background:#fff;border-radius:10px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,0.07)}
+    .metric-label{font-size:11px;color:#888;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px}
+    .metric-value{font-size:22px;font-weight:600}
+    .metric-value.danger{color:#dc2626}
+    .metric-value.success{color:#16a34a}
+    .card{background:#fff;border-radius:12px;padding:1.1rem 1.25rem;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,0.07)}
+    .card-title{font-size:14px;font-weight:600;margin-bottom:14px;color:#111}
+    .form-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px}
+    .form-row.three{grid-template-columns:repeat(3,1fr)}
+    label{font-size:11px;color:#666;display:block;margin-bottom:4px;font-weight:500;text-transform:uppercase;letter-spacing:0.4px}
+    input,select,textarea{width:100%;font-size:13px;padding:8px 10px;border:1px solid #e0e0e0;border-radius:8px;background:#fafafa;color:#1a1a1a;outline:none}
+    input:focus,select:focus,textarea:focus{border-color:#2563eb;background:#fff}
+    textarea{height:64px;resize:none}
+    .btn{padding:9px 18px;border-radius:8px;border:1px solid #e0e0e0;cursor:pointer;font-size:13px;font-weight:500;background:#fff;color:#333}
+    .btn.primary{background:#2563eb;color:#fff;border-color:#2563eb}
+    .btn.danger-btn{background:#dc2626;color:#fff;border-color:#dc2626}
+    .btn.success-btn{background:#16a34a;color:#fff;border-color:#16a34a}
+    .btn.sm{padding:5px 12px;font-size:12px}
+    table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+    th{text-align:left;font-size:11px;font-weight:600;color:#888;padding:6px 8px;border-bottom:1px solid #f0f0f0;text-transform:uppercase}
+    td{padding:9px 8px;border-bottom:1px solid #f5f5f5;color:#1a1a1a;vertical-align:middle}
+    tr:last-child td{border-bottom:none}
+    .badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600}
+    .badge-pending{background:#fef3c7;color:#92400e}
+    .badge-settled{background:#dcfce7;color:#166534}
+    .badge-card{background:#dbeafe;color:#1e40af}
+    .badge-payment{background:#ede9fe;color:#5b21b6}
+    .friend-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:1rem}
+    .friend-card{border:1.5px solid #e8e8e8;border-radius:12px;padding:16px;cursor:pointer;background:#fff}
+    .friend-card:hover{border-color:#93c5fd}
+    .friend-name{font-size:15px;font-weight:600;margin-bottom:3px}
+    .friend-due{font-size:13px;font-weight:500}
+    .friend-due.owes{color:#dc2626}
+    .friend-due.clear{color:#16a34a}
+    .avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;margin-bottom:10px}
+    .avatar-lg{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex-shrink:0}
+    .summary-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-radius:10px;background:#f8f8f8;margin-bottom:8px;font-size:13px}
+    .summary-bar.danger-bar{background:#fef2f2}
+    .filter-row{display:flex;gap:8px;flex-wrap:wrap}
+    .filter-row select{width:auto;font-size:12px;padding:6px 10px}
+    .section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+    .empty{text-align:center;color:#aaa;font-size:13px;padding:2rem}
+    .loading{text-align:center;padding:2rem;color:#888;font-size:14px}
+    .toast{position:fixed;bottom:24px;right:24px;background:#1a1a1a;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;opacity:0;transition:opacity 0.3s;z-index:999;pointer-events:none}
+    .toast.show{opacity:1}
+    .card-summary-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f5f5f5}
+    .card-summary-row:last-child{border-bottom:none}
+    .link-box{background:#f0f7ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 12px;font-size:11px;color:#1e40af;word-break:break-all;display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px}
+    .friend-manage-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f5f5f5}
+    .friend-manage-row:last-child{border-bottom:none}
+    .public-view{max-width:480px;margin:0 auto;padding:1rem;width:100%}
+    .public-header{background:#fff;border-radius:12px;padding:1.25rem;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,0.07);display:flex;align-items:center;gap:14px}
+    @media(max-width:600px){
+      .metric-grid{grid-template-columns:repeat(2,1fr)}
+      .form-row.three{grid-template-columns:repeat(2,1fr)}
+      .friend-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+
+<div id="pin-screen" style="display:none">
+  <div class="pin-screen">
+    <div class="pin-box">
+      <div class="pin-title">Split<span>Card</span></div>
+      <div class="pin-sub">Enter your admin PIN to continue</div>
+      <input class="pin-input" type="password" id="pin-input" maxlength="6" placeholder="••••" onkeydown="if(event.key==='Enter')checkPin()"/>
+      <div class="pin-error" id="pin-error"></div>
+      <button class="btn primary" style="width:100%" onclick="checkPin()">Unlock</button>
+      <div style="margin-top:14px;font-size:11px;color:#bbb">Default PIN: 1234</div>
+    </div>
+  </div>
+</div>
+
+<div id="friend-public-screen" style="display:none">
+  <div class="friend-screen">
+    <div class="public-view">
+      <div class="public-header">
+        <div class="avatar-lg" id="pub-avatar"></div>
+        <div>
+          <div id="pub-name" style="font-size:19px;font-weight:700"></div>
+          <div style="font-size:12px;color:#888;margin-top:2px">Your balance with Somesh</div>
+        </div>
+      </div>
+      <div class="summary-bar"><span>Somesh spent for you</span><span id="pub-total" style="font-weight:600"></span></div>
+      <div class="summary-bar"><span>You have paid back</span><span id="pub-paid" style="font-weight:600;color:#16a34a"></span></div>
+      <div class="summary-bar danger-bar"><span style="font-weight:600">You still owe</span><span id="pub-due" style="font-weight:700;color:#dc2626"></span></div>
+      <div class="card" style="margin-top:1rem">
+        <div class="card-title">Expense breakdown</div>
+        <div id="pub-expenses"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Your payments to Somesh</div>
+        <div id="pub-payments"></div>
+      </div>
+      <div style="text-align:center;margin-top:1rem;font-size:11px;color:#ccc">SplitCard by Somesh</div>
+    </div>
+  </div>
+</div>
+
+<div id="main-app" style="display:none">
+  <div class="app">
+    <div class="nav">
+      <span class="nav-title">Split<span>Card</span></span>
+      <button class="tab active" id="tab-admin" onclick="switchView('admin')">Dashboard</button>
+      <button class="tab" id="tab-friends" onclick="switchView('friends')">Friends</button>
+      <button class="tab" id="tab-manage" onclick="switchView('manage')">Manage</button>
+      <button class="logout-btn" onclick="logout()">Lock</button>
+    </div>
+
+    <div id="view-admin" class="view active">
+      <div class="metric-grid">
+        <div class="metric"><div class="metric-label">Total Spent</div><div class="metric-value" id="m-spent">-</div></div>
+        <div class="metric"><div class="metric-label">Received Back</div><div class="metric-value success" id="m-paid">-</div></div>
+        <div class="metric"><div class="metric-label">Outstanding</div><div class="metric-value danger" id="m-owed">-</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Log an expense</div>
+        <div class="form-row three">
+          <div><label>Date</label><input type="date" id="exp-date"/></div>
+          <div><label>Time</label><input type="time" id="exp-time"/></div>
+          <div><label>Card used</label>
+            <select id="exp-card"><option>HSBC</option><option>ICICI</option><option>Axis</option><option>SBI</option><option>HDFC</option><option>Amex</option><option>Kotak</option></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div><label>Category</label>
+            <select id="exp-category"><option>Flight</option><option>Hotel</option><option>Food</option><option>Activity</option><option>Visa</option><option>Transport</option><option>Other</option></select>
+          </div>
+          <div><label>Total amount (Rs)</label><input type="number" id="exp-total" placeholder="0" oninput="recalcSplits()"/></div>
+        </div>
+        <div style="margin-bottom:12px">
+          <label>Split across friends</label>
+          <div id="split-friends-list" style="margin-top:8px;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden"></div>
+          <button type="button" class="btn sm" style="margin-top:8px" onclick="equalSplit()">Equal split</button>
+        </div>
+        <div style="margin-bottom:12px"><label>Notes</label><textarea id="exp-notes" placeholder="e.g. Bangkok hotel, 3 nights"></textarea></div>
+        <button class="btn primary" onclick="addExpense()">Add expenses</button>
+      </div>
+      <div class="card">
+        <div class="section-header">
+          <div class="card-title" style="margin-bottom:0">All transactions</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <div class="filter-row">
+              <select id="filter-friend" onchange="renderTable()"><option value="">All friends</option></select>
+              <select id="filter-card" onchange="renderTable()"><option value="">All cards</option><option>HSBC</option><option>ICICI</option><option>Axis</option><option>SBI</option><option>HDFC</option></select>
+              <select id="filter-type" onchange="renderTable()"><option value="">All types</option><option value="expense">Expenses</option><option value="payment">Payments</option></select>
+            </div>
+            <button class="btn sm success-btn" onclick="exportCSV()">Export CSV</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;margin-top:12px">
+          <table>
+            <thead><tr>
+              <th style="width:82px">Date</th><th style="width:65px">Friend</th><th style="width:80px">Amount</th>
+              <th style="width:72px">Card</th><th style="width:70px">Category</th><th style="width:65px">Status</th><th>Notes</th>
+            </tr></thead>
+            <tbody id="tx-body"><tr><td colspan="7" class="loading">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Card-wise spend</div>
+        <div id="card-summary"></div>
+      </div>
+    </div>
+
+    <div id="view-friends" class="view">
+      <div id="friend-list-view">
+        <div class="card-title" style="margin-bottom:12px">Select a friend</div>
+        <div class="friend-grid" id="friend-cards"></div>
+      </div>
+      <div id="friend-detail-view" style="display:none">
+        <button class="btn sm" style="margin-bottom:1rem" onclick="backToFriends()">Back</button>
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:1.5rem">
+          <div class="avatar-lg" id="fd-avatar"></div>
+          <div style="flex:1;min-width:0">
+            <div id="fd-name" style="font-size:17px;font-weight:600"></div>
+            <div style="font-size:12px;color:#888;margin-top:2px">Shareable link:</div>
+            <div class="link-box">
+              <span id="fd-link" style="word-break:break-all"></span>
+              <button class="btn sm" onclick="copyLink()" style="flex-shrink:0">Copy</button>
+            </div>
+          </div>
+        </div>
+        <div class="summary-bar"><span>Total spent by Somesh</span><span id="fd-total" style="font-weight:600"></span></div>
+        <div class="summary-bar"><span>Paid back</span><span id="fd-paid" style="font-weight:600;color:#16a34a"></span></div>
+        <div class="summary-bar danger-bar"><span style="font-weight:600">Still owes</span><span id="fd-due" style="font-weight:700;color:#dc2626"></span></div>
+        <div class="card" style="margin-top:1rem">
+          <div class="card-title">Log repayment received</div>
+          <div class="form-row">
+            <div><label>Date</label><input type="date" id="pay-date"/></div>
+            <div><label>Amount (Rs)</label><input type="number" id="pay-amount" placeholder="0"/></div>
+          </div>
+          <div style="margin-bottom:10px"><label>Mode</label>
+            <select id="pay-mode"><option>UPI</option><option>Bank transfer</option><option>Cash</option></select>
+          </div>
+          <div style="margin-bottom:12px"><label>Notes</label><textarea id="pay-notes" placeholder="e.g. GPay received 12 Apr"></textarea></div>
+          <button class="btn primary" onclick="addPayment()">Mark as received</button>
+        </div>
+        <div class="card"><div class="card-title">Expense history</div><div id="fd-expenses"></div></div>
+        <div class="card"><div class="card-title">Payment history</div><div id="fd-payments"></div></div>
+      </div>
+    </div>
+
+    <div id="view-manage" class="view">
+      <div class="card">
+        <div class="card-title">Add a new friend</div>
+        <div class="form-row" style="align-items:flex-end">
+          <div><label>Friend name</label><input type="text" id="new-friend-name" placeholder="e.g. Yash"/></div>
+          <div><button class="btn primary" style="margin-top:20px;width:100%" onclick="addFriend()">Add friend</button></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Friend links</div>
+        <p style="font-size:13px;color:#666;margin-bottom:14px">Send each friend their private link.</p>
+        <div id="friend-links-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Manage friends</div>
+        <div id="manage-friends-list"></div>
+      </div>
+      <div class="card" style="border:1px solid #fecaca">
+        <div class="card-title" style="color:#dc2626">Change admin PIN</div>
+        <div class="form-row" style="align-items:flex-end">
+          <div><label>New PIN (4-6 digits)</label><input type="password" id="new-pin" placeholder="------" maxlength="6"/></div>
+          <div><button class="btn danger-btn" style="margin-top:20px;width:100%" onclick="changePin()">Update PIN</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, push, set, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDNT_hoAb_UDQH_XuwzwJh7Wy16JzpHZvE",
+  authDomain: "splitcard-b75e4.firebaseapp.com",
+  databaseURL: "https://splitcard-b75e4-default-rtdb.firebaseio.com",
+  projectId: "splitcard-b75e4",
+  storageBucket: "splitcard-b75e4.firebasestorage.app",
+  messagingSenderId: "810353501440",
+  appId: "1:810353501440:web:e5a9b48f59243de0c13fe5"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const COLORS = [
+  {bg:'#dbeafe',fg:'#1e40af'},{bg:'#dcfce7',fg:'#166534'},
+  {bg:'#fce7f3',fg:'#9d174d'},{bg:'#fef3c7',fg:'#92400e'},
+  {bg:'#ede9fe',fg:'#5b21b6'},{bg:'#d1fae5',fg:'#065f46'},
+  {bg:'#fee2e2',fg:'#991b1b'},{bg:'#fef9c3',fg:'#854d0e'}
+];
+
+function ac(name) {
+  return COLORS[name.charCodeAt(0) % COLORS.length];
+}
+
+function fmt(n) {
+  return 'Rs ' + Number(n).toLocaleString('en-IN');
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+
+var transactions = [];
+var friends = [];
+var settings = { pin: '1234' };
+var selectedFriend = null;
+var friendsLoaded = false;
+var txLoaded = false;
+
+var pagePath = window.location.pathname.toLowerCase();
+var friendSlug = null;
+if (pagePath.indexOf('/friend/') === 0) {
+  friendSlug = pagePath.split('/friend/')[1].split('/')[0];
+}
+
+function getExp(name) {
+  var e = transactions.filter(function(t) { return t.type === 'expense'; });
+  if (name) { e = e.filter(function(t) { return t.friend === name; }); }
+  return e;
+}
+
+function getPay(name) {
+  var p = transactions.filter(function(t) { return t.type === 'payment'; });
+  if (name) { p = p.filter(function(t) { return t.friend === name; }); }
+  return p;
+}
+
+function owed(name) {
+  var spent = getExp(name).reduce(function(s,t) { return s + t.amount; }, 0);
+  var paid = getPay(name).reduce(function(s,t) { return s + t.amount; }, 0);
+  return spent - paid;
+}
+
+onValue(ref(db, 'transactions'), function(snap) {
+  transactions = [];
+  if (snap.exists()) {
+    snap.forEach(function(c) {
+      transactions.push(Object.assign({ id: c.key }, c.val()));
+    });
+  }
+  transactions.sort(function(a,b) {
+    var da = new Date((a.date||'1970-01-01') + 'T' + (a.time||'00:00'));
+    var db2 = new Date((b.date||'1970-01-01') + 'T' + (b.time||'00:00'));
+    return da - db2;
+  });
+  txLoaded = true;
+  console.log('TX loaded:', transactions.length);
+  if (friendSlug) { tryRenderPublic(); }
+  tryRenderAll();
+});
+
+onValue(ref(db, 'friends'), function(snap) {
+  friends = [];
+  if (snap.exists()) {
+    snap.forEach(function(c) {
+      var v = c.val();
+      if (v && v.name && v.slug) {
+        friends.push(Object.assign({ id: c.key }, v));
+      }
+    });
+  }
+  friendsLoaded = true;
+  console.log('Friends loaded:', friends.length, friends.map(function(f) { return f.name; }));
+  populateFriendDropdowns();
+  renderFriendCards();
+  renderManage();
+  if (friendSlug) { tryRenderPublic(); }
+  tryRenderAll();
+});
+
+onValue(ref(db, 'settings'), function(snap) {
+  if (snap.exists()) {
+    var v = snap.val();
+    if (v && v.pin) { settings.pin = v.pin; }
+  }
+});
+
+function tryRenderPublic() {
+  if (friendsLoaded && txLoaded) { renderPublic(); }
+}
+
+function tryRenderAll() {
+  if (friendsLoaded && txLoaded) {
+    var app = document.getElementById('main-app');
+    if (app && app.style.display !== 'none') {
+      renderMetrics();
+      renderTable();
+      renderCardSummary();
+      renderFriendCards();
+      renderManage();
+      populateFriendDropdowns();
+    }
+  }
+}
+
+function boot() {
+  if (friendSlug) {
+    document.getElementById('friend-public-screen').style.display = 'block';
+    return;
+  }
+  if (sessionStorage.getItem('sc_ok') === '1') {
+    showApp();
+  } else {
+    document.getElementById('pin-screen').style.display = 'block';
+  }
+}
+
+window.checkPin = function() {
+  var val = document.getElementById('pin-input').value;
+  if (val === settings.pin) {
+    sessionStorage.setItem('sc_ok', '1');
+    document.getElementById('pin-screen').style.display = 'none';
+    showApp();
+  } else {
+    document.getElementById('pin-error').textContent = 'Wrong PIN, try again.';
+    document.getElementById('pin-input').value = '';
+  }
+};
+
+function showApp() {
+  document.getElementById('main-app').style.display = 'block';
+  document.getElementById('exp-date').value = new Date().toISOString().split('T')[0];
+  var now = new Date(); document.getElementById('exp-time').value = now.toTimeString().slice(0,5);
+  if (friendsLoaded && txLoaded) {
+    renderMetrics();
+    renderTable();
+    renderCardSummary();
+    renderFriendCards();
+    renderManage();
+    populateFriendDropdowns();
+  }
+}
+
+window.logout = function() {
+  sessionStorage.removeItem('sc_ok');
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('pin-screen').style.display = 'block';
+  document.getElementById('pin-input').value = '';
+  document.getElementById('pin-error').textContent = '';
+};
+
+function renderPublic() {
+  if (!friendSlug) { return; }
+  var f = null;
+  for (var i = 0; i < friends.length; i++) {
+    if (friends[i].slug === friendSlug) { f = friends[i]; break; }
+  }
+  var el = document.getElementById('friend-public-screen');
+  if (!f) {
+    el.innerHTML = '<div style="text-align:center;padding:4rem;color:#888;font-size:14px">Link not valid. Ask Somesh for your link.</div>';
+    return;
+  }
+  var c = ac(f.name);
+  var av = document.getElementById('pub-avatar');
+  av.style.background = c.bg;
+  av.style.color = c.fg;
+  av.textContent = f.name[0];
+  document.getElementById('pub-name').textContent = f.name;
+  var spent = getExp(f.name).reduce(function(s,t) { return s+t.amount; }, 0);
+  var paid = getPay(f.name).reduce(function(s,t) { return s+t.amount; }, 0);
+  document.getElementById('pub-total').textContent = fmt(spent);
+  document.getElementById('pub-paid').textContent = fmt(paid);
+  document.getElementById('pub-due').textContent = fmt(Math.max(0, spent - paid));
+  var exps = getExp(f.name);
+  var expHtml = exps.length ? exps.map(function(t) {
+    return '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f5f5f5"><div><div style="font-size:13px;font-weight:500">' + t.category + ' - ' + (t.notes||'') + '</div><div style="font-size:11px;color:#888">' + t.date + ' - ' + t.card + '</div></div><div style="font-weight:600">' + fmt(t.amount) + '</div></div>';
+  }).join('') : '<div class="empty">No expenses yet</div>';
+  document.getElementById('pub-expenses').innerHTML = expHtml;
+  var pays = getPay(f.name);
+  var payHtml = pays.length ? pays.map(function(t) {
+    return '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f5f5f5"><div><div style="font-size:13px;font-weight:500">' + (t.notes||'Payment') + '</div><div style="font-size:11px;color:#888">' + t.date + ' - ' + t.mode + '</div></div><div style="font-weight:600;color:#16a34a">' + fmt(t.amount) + '</div></div>';
+  }).join('') : '<div class="empty">No payments yet</div>';
+  document.getElementById('pub-payments').innerHTML = payHtml;
+}
+
+function renderMetrics() {
+  var spent = getExp().reduce(function(s,t) { return s+t.amount; }, 0);
+  var paid = getPay().reduce(function(s,t) { return s+t.amount; }, 0);
+  document.getElementById('m-spent').textContent = fmt(spent);
+  document.getElementById('m-paid').textContent = fmt(paid);
+  document.getElementById('m-owed').textContent = fmt(Math.max(0, spent - paid));
+}
+
+function renderTable() {
+  var ff = document.getElementById('filter-friend').value;
+  var fc = document.getElementById('filter-card').value;
+  var ft = document.getElementById('filter-type').value;
+  var rows = transactions.slice();
+  if (ff) { rows = rows.filter(function(t) { return t.friend === ff; }); }
+  if (fc) { rows = rows.filter(function(t) { return t.card === fc; }); }
+  if (ft) { rows = rows.filter(function(t) { return t.type === ft; }); }
+  var body = document.getElementById('tx-body');
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="7" class="empty">No transactions yet</td></tr>';
+    return;
+  }
+  body.innerHTML = rows.map(function(t) {
+    var o = owed(t.friend);
+    var sb = t.type === 'payment' ? '<span class="badge badge-payment">Payment</span>' : o <= 0 ? '<span class="badge badge-settled">Settled</span>' : '<span class="badge badge-pending">Pending</span>';
+    var mb = t.type === 'expense' ? '<span class="badge badge-card">' + t.card + '</span>' : '<span style="font-size:11px;color:#888">' + t.mode + '</span>';
+    var timeStr = t.time ? ' ' + t.time : '';
+    return '<tr><td style="font-size:11px">' + t.date + timeStr + '</td><td>' + t.friend + '</td><td style="font-weight:600">' + fmt(t.amount) + '</td><td>' + mb + '</td><td style="font-size:11px;color:#666">' + (t.type==='expense'?t.category:'-') + '</td><td>' + sb + '</td><td style="font-size:12px;color:#777;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (t.notes||'') + '</td></tr>';
+  }).join('');
+}
+
+function renderCardSummary() {
+  var cards = {};
+  getExp().forEach(function(t) { cards[t.card] = (cards[t.card] || 0) + t.amount; });
+  var el = document.getElementById('card-summary');
+  if (!Object.keys(cards).length) {
+    el.innerHTML = '<div class="empty">No expenses yet</div>';
+    return;
+  }
+  el.innerHTML = Object.entries(cards).sort(function(a,b) { return b[1]-a[1]; }).map(function(e) {
+    return '<div class="card-summary-row"><span class="badge badge-card">' + e[0] + '</span><span style="font-weight:600">' + fmt(e[1]) + '</span></div>';
+  }).join('');
+}
+
+function renderFriendCards() {
+  var el = document.getElementById('friend-cards');
+  if (!el) { return; }
+  if (!friends.length) {
+    el.innerHTML = '<div class="empty">No friends yet. Go to Manage tab to add.</div>';
+    return;
+  }
+  el.innerHTML = friends.map(function(f) {
+    var o = owed(f.name);
+    var c = ac(f.name);
+    var dueText = o > 0 ? 'Owes ' + fmt(o) : 'All settled';
+    var dueClass = o > 0 ? 'owes' : 'clear';
+    return '<div class="friend-card" onclick="window.openFriend(\'' + f.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\')"><div class="avatar" style="background:' + c.bg + ';color:' + c.fg + '">' + f.name[0] + '</div><div class="friend-name">' + f.name + '</div><div class="friend-due ' + dueClass + '">' + dueText + '</div></div>';
+  }).join('');
+}
+
+function renderManage() {
+  var linksEl = document.getElementById('friend-links-list');
+  if (linksEl) {
+    if (!friends.length) {
+      linksEl.innerHTML = '<div class="empty">No friends yet</div>';
+    } else {
+      linksEl.innerHTML = friends.map(function(f) {
+        var link = window.location.origin + '/friend/' + f.slug;
+        return '<div style="margin-bottom:12px"><div style="font-size:13px;font-weight:500;margin-bottom:4px">' + f.name + '</div><div class="link-box"><span>' + link + '</span><button class="btn sm" onclick="window.copyText(\'' + link + '\')">Copy</button></div></div>';
+      }).join('');
+    }
+  }
+  var manEl = document.getElementById('manage-friends-list');
+  if (manEl) {
+    if (!friends.length) {
+      manEl.innerHTML = '<div class="empty">No friends yet</div>';
+    } else {
+      manEl.innerHTML = friends.map(function(f) {
+        var c = ac(f.name);
+        return '<div class="friend-manage-row"><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="background:' + c.bg + ';color:' + c.fg + ';margin-bottom:0">' + f.name[0] + '</div><span style="font-size:14px;font-weight:500">' + f.name + '</span></div><button class="btn sm danger-btn" onclick="window.removeFriend(\'' + f.id + '\',\'' + f.name.replace(/'/g,"\\'") + '\')">Remove</button></div>';
+      }).join('');
+    }
+  }
+}
+
+function populateFriendDropdowns() {
+  var ff = document.getElementById('filter-friend');
+  if (ff) {
+    ff.innerHTML = '<option value="">All friends</option>' + friends.map(function(f) { return '<option value="' + f.name + '">' + f.name + '</option>'; }).join('');
+  }
+  renderSplitFriendsList();
+}
+
+window.addExpense = async function() {
+  var date = document.getElementById('exp-date').value;
+  var time = document.getElementById('exp-time').value || '00:00';
+  var card = document.getElementById('exp-card').value;
+  var category = document.getElementById('exp-category').value;
+  var notes = document.getElementById('exp-notes').value;
+  if (!date) { showToast('Please select a date'); return; }
+  // Collect splits
+  var splits = [];
+  var inputs = document.querySelectorAll('.split-amount-input');
+  var checks = document.querySelectorAll('.split-friend-check');
+  for (var i = 0; i < checks.length; i++) {
+    if (checks[i].checked) {
+      var amt = parseFloat(inputs[i].value);
+      if (!amt || amt <= 0) { showToast('Enter amount for ' + checks[i].dataset.name); return; }
+      splits.push({ friend: checks[i].dataset.name, amount: amt });
+    }
+  }
+  if (!splits.length) { showToast('Select at least one friend'); return; }
+  for (var j = 0; j < splits.length; j++) {
+    await push(ref(db, 'transactions'), { type:'expense', date:date, time:time, friend:splits[j].friend, amount:splits[j].amount, card:card, category:category, notes:notes||'', createdAt:Date.now() });
+  }
+  document.getElementById('exp-total').value = '';
+  document.getElementById('exp-notes').value = '';
+  // Uncheck all
+  document.querySelectorAll('.split-friend-check').forEach(function(c) { c.checked = false; });
+  document.querySelectorAll('.split-amount-input').forEach(function(i) { i.value = ''; });
+  showToast(splits.length + ' expense(s) saved!');
+};
+
+window.addPayment = async function() {
+  var date = document.getElementById('pay-date').value;
+  var amount = parseFloat(document.getElementById('pay-amount').value);
+  var mode = document.getElementById('pay-mode').value;
+  var notes = document.getElementById('pay-notes').value;
+  var time = new Date().toTimeString().slice(0,5);
+  if (!date || !amount || amount <= 0) { showToast('Please fill date and amount'); return; }
+  await push(ref(db, 'transactions'), { type:'payment', date:date, time:time, friend:selectedFriend, amount:amount, mode:mode, notes:notes||'', createdAt:Date.now() });
+  document.getElementById('pay-amount').value = '';
+  document.getElementById('pay-notes').value = '';
+  showToast('Payment recorded!');
+};
+
+window.addFriend = async function() {
+  var name = document.getElementById('new-friend-name').value.trim();
+  if (!name) { showToast('Enter a name'); return; }
+  var exists = friends.some(function(f) { return f.name.toLowerCase() === name.toLowerCase(); });
+  if (exists) { showToast('Already exists'); return; }
+  var slug = name.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substr(2, 4);
+  await push(ref(db, 'friends'), { name:name, slug:slug, addedAt:Date.now() });
+  document.getElementById('new-friend-name').value = '';
+  showToast(name + ' added!');
+};
+
+window.removeFriend = async function(id, name) {
+  if (!confirm('Remove ' + name + '?')) { return; }
+  await remove(ref(db, 'friends/' + id));
+  showToast(name + ' removed');
+};
+
+window.changePin = async function() {
+  var p = document.getElementById('new-pin').value;
+  if (!p || p.length < 4) { showToast('PIN must be 4+ digits'); return; }
+  if (!/^\d+$/.test(p)) { showToast('Numbers only'); return; }
+  await set(ref(db, 'settings/pin'), p);
+  settings.pin = p;
+  document.getElementById('new-pin').value = '';
+  showToast('PIN updated!');
+};
+
+window.openFriend = function(name) {
+  selectedFriend = name;
+  var f = null;
+  for (var i = 0; i < friends.length; i++) {
+    if (friends[i].name === name) { f = friends[i]; break; }
+  }
+  document.getElementById('friend-list-view').style.display = 'none';
+  document.getElementById('friend-detail-view').style.display = 'block';
+  var c = ac(name);
+  var av = document.getElementById('fd-avatar');
+  av.style.background = c.bg;
+  av.style.color = c.fg;
+  av.textContent = name[0];
+  document.getElementById('fd-name').textContent = name;
+  document.getElementById('fd-link').textContent = f ? window.location.origin + '/friend/' + f.slug : 'N/A';
+  document.getElementById('pay-date').value = new Date().toISOString().split('T')[0];
+  renderDetail(name);
+};
+
+function renderDetail(name) {
+  var spent = getExp(name).reduce(function(s,t) { return s+t.amount; }, 0);
+  var paid = getPay(name).reduce(function(s,t) { return s+t.amount; }, 0);
+  document.getElementById('fd-total').textContent = fmt(spent);
+  document.getElementById('fd-paid').textContent = fmt(paid);
+  document.getElementById('fd-due').textContent = fmt(Math.max(0, spent - paid));
+  var exps = getExp(name);
+  document.getElementById('fd-expenses').innerHTML = exps.length ? exps.map(function(t) {
+    return '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f5f5f5"><div><div style="font-size:13px;font-weight:500">' + t.category + ' - ' + (t.notes||'') + '</div><div style="font-size:11px;color:#888">' + t.date + ' - <span class="badge badge-card">' + t.card + '</span></div></div><div style="font-weight:600">' + fmt(t.amount) + '</div></div>';
+  }).join('') : '<div class="empty">No expenses logged</div>';
+  var pays = getPay(name);
+  document.getElementById('fd-payments').innerHTML = pays.length ? pays.map(function(t) {
+    return '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f5f5f5"><div><div style="font-size:13px;font-weight:500">' + (t.notes||'Payment received') + '</div><div style="font-size:11px;color:#888">' + t.date + ' - ' + t.mode + '</div></div><div style="font-weight:600;color:#16a34a">' + fmt(t.amount) + '</div></div>';
+  }).join('') : '<div class="empty">No payments yet</div>';
+}
+
+window.backToFriends = function() {
+  selectedFriend = null;
+  document.getElementById('friend-list-view').style.display = 'block';
+  document.getElementById('friend-detail-view').style.display = 'none';
+};
+
+window.switchView = function(v) {
+  document.querySelectorAll('.view').forEach(function(el) { el.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(el) { el.classList.remove('active'); });
+  document.getElementById('view-' + v).classList.add('active');
+  document.getElementById('tab-' + v).classList.add('active');
+  if (v === 'friends') {
+    document.getElementById('friend-list-view').style.display = 'block';
+    document.getElementById('friend-detail-view').style.display = 'none';
+    renderFriendCards();
+  }
+  if (v === 'manage') { renderManage(); }
+  if (v === 'admin') { renderMetrics(); renderTable(); renderCardSummary(); }
+};
+
+window.copyLink = function() {
+  window.copyText(document.getElementById('fd-link').textContent);
+};
+
+window.copyText = function(text) {
+  navigator.clipboard.writeText(text).then(function() { showToast('Copied!'); }).catch(function() { showToast('Copy failed'); });
+};
+
+window.exportCSV = function() {
+  var ff = document.getElementById('filter-friend').value;
+  var fc = document.getElementById('filter-card').value;
+  var ft = document.getElementById('filter-type').value;
+  var rows = transactions.slice();
+  if (ff) { rows = rows.filter(function(t) { return t.friend === ff; }); }
+  if (fc) { rows = rows.filter(function(t) { return t.card === fc; }); }
+  if (ft) { rows = rows.filter(function(t) { return t.type === ft; }); }
+  var headers = ['Date','Friend','Type','Amount','Card/Mode','Category','Notes','Status'];
+  var csv = [headers.join(',')].concat(rows.map(function(t) {
+    return [t.date, t.friend, t.type, t.amount, t.type==='expense'?t.card:t.mode, t.type==='expense'?t.category:'payment', '"'+(t.notes||'').replace(/"/g,'""')+'"', t.type==='payment'?'payment_received':owed(t.friend)<=0?'settled':'pending'].join(',');
+  }));
+  var blob = new Blob([csv.join('\n')], {type:'text/csv'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'splitcard_' + new Date().toISOString().split('T')[0] + '.csv';
+  a.click();
+  showToast('CSV downloaded!');
+};
+
+function renderSplitFriendsList() {
+  var el = document.getElementById('split-friends-list');
+  if (!el) { return; }
+  if (!friends.length) {
+    el.innerHTML = '<div style="padding:12px;color:#aaa;font-size:13px">Add friends in Manage tab first</div>';
+    return;
+  }
+  el.innerHTML = friends.map(function(f, i) {
+    var c = ac(f.name);
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #f5f5f5">' +
+      '<input type="checkbox" class="split-friend-check" data-name="' + f.name + '" data-index="' + i + '" onchange="recalcSplits()" style="width:16px;height:16px;cursor:pointer"/>' +
+      '<div class="avatar" style="background:' + c.bg + ';color:' + c.fg + ';margin-bottom:0;width:28px;height:28px;font-size:12px">' + f.name[0] + '</div>' +
+      '<span style="font-size:13px;flex:1">' + f.name + '</span>' +
+      '<input type="number" class="split-amount-input" placeholder="0" style="width:90px;font-size:13px;padding:6px 8px;border:1px solid #e0e0e0;border-radius:6px;background:#fafafa"/>' +
+    '</div>';
+  }).join('');
+}
+
+window.recalcSplits = function() {
+  var total = parseFloat(document.getElementById('exp-total').value) || 0;
+  var checks = document.querySelectorAll('.split-friend-check:checked');
+  if (!checks.length || !total) { return; }
+  var each = Math.round((total / checks.length) * 100) / 100;
+  var allInputs = document.querySelectorAll('.split-amount-input');
+  var allChecks = document.querySelectorAll('.split-friend-check');
+  for (var i = 0; i < allChecks.length; i++) {
+    if (allChecks[i].checked) { allInputs[i].value = each; }
+  }
+};
+
+window.equalSplit = function() {
+  var checks = document.querySelectorAll('.split-friend-check');
+  checks.forEach(function(c) { c.checked = true; });
+  recalcSplits();
+};
+
+boot();
+</script>
+</body>
+</html>
